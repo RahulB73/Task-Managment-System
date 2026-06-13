@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
-  signInWithEmail,
+  signInWithPassword,
+  signUpWithPassword,
   signInWithGoogle,
   type AuthActionState,
 } from "@/lib/auth/actions";
@@ -12,13 +13,56 @@ import { Input } from "@/components/ui/input";
 const initialState: AuthActionState = {};
 
 export function LoginForm() {
-  const [state, formAction, pending] = useActionState(
-    signInWithEmail,
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+
+  async function signInAction(_prev: AuthActionState, formData: FormData) {
+    return signInWithPassword(_prev, formData);
+  }
+
+  async function signUpAction(_prev: AuthActionState, formData: FormData) {
+    return signUpWithPassword(_prev, formData);
+  }
+
+  const [signInState, signInFormAction, signInPending] = useActionState(
+    signInAction,
+    initialState
+  );
+  const [signUpState, signUpFormAction, signUpPending] = useActionState(
+    signUpAction,
     initialState
   );
 
+  const state = mode === "signin" ? signInState : signUpState;
+  const formAction = mode === "signin" ? signInFormAction : signUpFormAction;
+  const pending = mode === "signin" ? signInPending : signUpPending;
+
   return (
     <div className="space-y-6">
+      <div className="flex rounded-lg border border-border bg-background p-1">
+        <button
+          type="button"
+          onClick={() => setMode("signin")}
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium motion-safe:transition-colors ${
+            mode === "signin"
+              ? "bg-primary text-white"
+              : "text-muted hover:text-foreground"
+          }`}
+        >
+          Sign in
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("signup")}
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium motion-safe:transition-colors ${
+            mode === "signup"
+              ? "bg-primary text-white"
+              : "text-muted hover:text-foreground"
+          }`}
+        >
+          Sign up
+        </button>
+      </div>
+
       <form action={formAction} className="space-y-4">
         <Input
           label="Email"
@@ -30,8 +74,38 @@ export function LoginForm() {
           placeholder="you@example.com"
         />
 
+        <Input
+          label="Password"
+          id="password"
+          name="password"
+          type="password"
+          autoComplete={mode === "signin" ? "current-password" : "new-password"}
+          required
+          placeholder="••••••••"
+          minLength={6}
+        />
+
+        {mode === "signup" && (
+          <Input
+            label="Confirm password"
+            id="confirm_password"
+            name="confirm_password"
+            type="password"
+            autoComplete="new-password"
+            required
+            placeholder="••••••••"
+            minLength={6}
+          />
+        )}
+
         <Button type="submit" disabled={pending} className="w-full" size="lg">
-          {pending ? "Sending link..." : "Send magic link"}
+          {pending
+            ? mode === "signin"
+              ? "Signing in..."
+              : "Creating account..."
+            : mode === "signin"
+              ? "Sign in"
+              : "Create account"}
         </Button>
       </form>
 

@@ -21,7 +21,7 @@ export default async function LoginPage({
         <CardContent className="pt-8">
           <PageHeader
             title="Sign in"
-            description="Use your email or Google to access your goals on any device."
+            description="Use your email and password on any device."
             className="border-none px-0 py-0"
           />
 
