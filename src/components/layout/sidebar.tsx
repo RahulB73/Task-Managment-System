@@ -1,0 +1,68 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { mainNav } from "@/lib/navigation";
+import { cn } from "@/lib/utils/cn";
+import { signOut } from "@/lib/auth/actions";
+import { Button } from "@/components/ui/button";
+import { motion } from "@/lib/utils/motion";
+
+type SidebarProps = {
+  userEmail?: string | null;
+  onNavigate?: () => void;
+};
+
+export function Sidebar({ userEmail, onNavigate }: SidebarProps) {
+  const pathname = usePathname();
+  const displayName = userEmail?.split("@")[0] ?? "User";
+
+  return (
+    <aside className="flex h-full w-full flex-col border-r border-border bg-card lg:w-64">
+      <div className="border-b border-border px-5 py-6">
+        <p className="text-xs font-medium uppercase tracking-wider text-accent">
+          TaskFlow
+        </p>
+        <p className="mt-1 truncate text-sm text-muted">Welcome, {displayName}</p>
+      </div>
+
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+        {mainNav.map(({ label, href, icon: Icon, match }) => {
+          const isActive = match ? match(pathname) : pathname === href;
+
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
+                isActive
+                  ? cn("bg-primary text-white", motion.navItemActive)
+                  : cn("text-muted hover:bg-card-hover hover:text-foreground", motion.navItem)
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="border-t border-border p-4">
+        <p className="mb-3 truncate text-xs text-muted">{userEmail}</p>
+        <form action={signOut}>
+          <Button type="submit" variant="secondary" size="sm" className="w-full">
+            Sign out
+          </Button>
+        </form>
+        <p className="mt-4 text-center text-xs text-muted">
+          {new Date().toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+          })}
+        </p>
+      </div>
+    </aside>
+  );
+}
