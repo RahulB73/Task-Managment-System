@@ -90,3 +90,21 @@ export async function getNextSubtaskSortOrder(
 
   return (result.data?.sort_order ?? -1) + 1;
 }
+
+export async function reorderSubtasks(subtaskIds: string[]): Promise<void> {
+  if (subtaskIds.length === 0) {
+    return;
+  }
+
+  const supabase = await createClient();
+
+  const updates = subtaskIds.map((id, index) =>
+    supabase.from("subtasks").update({ sort_order: index }).eq("id", id)
+  );
+
+  const results = await Promise.all(updates);
+
+  for (const result of results) {
+    assertNoError("reorderSubtasks", { data: null, error: result.error });
+  }
+}

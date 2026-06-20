@@ -19,8 +19,9 @@ export type Database = {
           expected_result: string | null;
           timeline_start: string | null;
           timeline_end: string | null;
-          status: "pending" | "in_progress" | "done" | "paused";
+          status: "pending" | "in_progress" | "in_testing" | "done" | "paused";
           category: string | null;
+          sort_order: number;
           created_at: string;
           updated_at: string;
         };
@@ -33,8 +34,9 @@ export type Database = {
           expected_result?: string | null;
           timeline_start?: string | null;
           timeline_end?: string | null;
-          status?: "pending" | "in_progress" | "done" | "paused";
+          status?: "pending" | "in_progress" | "in_testing" | "done" | "paused";
           category?: string | null;
+          sort_order?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -47,8 +49,9 @@ export type Database = {
           expected_result?: string | null;
           timeline_start?: string | null;
           timeline_end?: string | null;
-          status?: "pending" | "in_progress" | "done" | "paused";
+          status?: "pending" | "in_progress" | "in_testing" | "done" | "paused";
           category?: string | null;
+          sort_order?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -153,6 +156,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      daily_priorities: {
+        Row: {
+          id: string;
+          user_id: string;
+          priority_date: string;
+          task_id: string;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          priority_date: string;
+          task_id: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          priority_date?: string;
+          task_id?: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -174,3 +207,4 @@ export type Task = Tables<"tasks">;
 export type Subtask = Tables<"subtasks">;
 export type Review = Tables<"reviews">;
 export type MonthlyEntry = Tables<"monthly_entries">;
+export type DailyPriority = Tables<"daily_priorities">;

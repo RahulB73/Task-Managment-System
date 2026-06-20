@@ -23,6 +23,7 @@ export type CreateTaskInput = Pick<
   | "timeline_end"
   | "status"
   | "category"
+  | "sort_order"
 >;
 
 export type UpdateTaskInput = TablesUpdate<"tasks">;

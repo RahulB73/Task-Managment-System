@@ -16,18 +16,18 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex flex-col gap-4 border-b border-border bg-card/40 px-4 py-5 sm:px-6 lg:px-8 lg:py-6 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-3 border-b border-border bg-card/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6",
         className
       )}
     >
-      <div className="min-w-0">
-        <h1 className="text-xl font-bold text-foreground sm:text-2xl">{title}</h1>
+      <div className="min-w-0 flex-1">
+        <h1 className="text-lg font-bold text-foreground sm:text-2xl">{title}</h1>
         {description && (
-          <p className="mt-1 text-sm text-muted">{description}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted sm:text-sm">{description}</p>
         )}
       </div>
       {actions && (
-        <div className="flex w-full shrink-0 flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
+        <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           {actions}
         </div>
       )}

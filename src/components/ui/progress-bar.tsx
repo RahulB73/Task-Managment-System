@@ -18,7 +18,7 @@ export function ProgressBar({
   return (
     <div className={cn("w-full", className)}>
       {showLabel && (
-        <div className="mb-1.5 flex items-center justify-between text-xs text-muted">
+        <div className="mb-1 flex items-center justify-between text-[11px] text-muted sm:text-xs">
           <span>Progress</span>
           <span className="font-medium text-foreground">{clamped}%</span>
         </div>

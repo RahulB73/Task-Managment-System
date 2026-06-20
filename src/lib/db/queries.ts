@@ -1,6 +1,8 @@
 import { getTasks, getTask } from "@/lib/db/tasks";
 import { getSubtasksByTask, getSubtasksByTaskIds } from "@/lib/db/subtasks";
 import { getReviewsByTask } from "@/lib/db/reviews";
+import { getDailyPriorities } from "@/lib/db/daily";
+import { createClient } from "@/lib/supabase/server";
 import {
   buildSubtaskTree,
   calculateProgressFromSubtasks,
@@ -37,6 +39,74 @@ export async function getTasksWithProgress(
     ...task,
     progress: calculateProgressFromSubtasks(subtasksByTask.get(task.id) ?? []),
   }));
+}
+
+export async function getTodayTasksWithProgress(date: string): Promise<TaskListItem[]> {
+  const dailyRows = await getDailyPriorities(date);
+
+  if (dailyRows.length === 0) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const taskIds = dailyRows.map((row) => row.task_id);
+
+  const result = await supabase.from("tasks").select("*").in("id", taskIds);
+
+  if (result.error) {
+    throw new Error(`getTodayTasksWithProgress: ${result.error.message}`);
+  }
+
+  const tasks = result.data ?? [];
+  const taskMap = new Map(tasks.map((task) => [task.id, task]));
+  const orderedTasks = dailyRows
+    .map((row) => taskMap.get(row.task_id))
+    .filter((task): task is Task => Boolean(task));
+
+  if (orderedTasks.length === 0) {
+    return [];
+  }
+
+  const subtasks = await getSubtasksByTaskIds(orderedTasks.map((task) => task.id));
+
+  const withProgress = orderedTasks.map((task) => ({
+    ...task,
+    progress: calculateProgressFromSubtasks(
+      subtasks.filter((subtask) => subtask.task_id === task.id)
+    ),
+  }));
+
+  const sortOrderByTask = new Map(dailyRows.map((row) => [row.task_id, row.sort_order]));
+
+  return withProgress.sort((a, b) => {
+    if (a.workspace !== b.workspace) {
+      return a.workspace === "office" ? -1 : 1;
+    }
+
+    return (sortOrderByTask.get(a.id) ?? 0) - (sortOrderByTask.get(b.id) ?? 0);
+  });
+}
+
+export async function getAvailableTasksForToday(date: string): Promise<TaskListItem[]> {
+  const [officeTasks, personalTasks, dailyRows] = await Promise.all([
+    getTasksWithProgress("office"),
+    getTasksWithProgress("personal"),
+    getDailyPriorities(date),
+  ]);
+
+  const pickedIds = new Set(dailyRows.map((row) => row.task_id));
+
+  return [...officeTasks, ...personalTasks]
+    .filter((task) => task.status !== "done" && !pickedIds.has(task.id))
+    .sort((a, b) => {
+      const categoryA = a.category ?? "";
+      const categoryB = b.category ?? "";
+      if (categoryA !== categoryB) {
+        return categoryA.localeCompare(categoryB);
+      }
+
+      return a.sort_order - b.sort_order;
+    });
 }
 
 export async function getTaskWithProgress(

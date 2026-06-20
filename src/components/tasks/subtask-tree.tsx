@@ -1,10 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { ChevronDown, ChevronRight, GripVertical, Trash2 } from "lucide-react";
 import {
   addSubtaskAction,
   deleteSubtaskAction,
+  reorderSubtasksAction,
   toggleSubtaskStatusAction,
 } from "@/lib/tasks/actions";
 import { Button } from "@/components/ui/button";
@@ -32,19 +50,15 @@ export function SubtaskTree({ workspace, taskId, nodes }: SubtaskTreeProps) {
   }
 
   return (
-    <ul className="space-y-1">
-      {nodes.map((node) => (
-        <SubtaskNodeItem
-          key={node.id}
-          node={node}
-          depth={0}
-          workspace={workspace}
-          taskId={taskId}
-          expanded={expanded}
-          setExpanded={setExpanded}
-        />
-      ))}
-    </ul>
+    <SortableSubtaskList
+      nodes={nodes}
+      depth={0}
+      parentSubtaskId={null}
+      workspace={workspace}
+      taskId={taskId}
+      expanded={expanded}
+      setExpanded={setExpanded}
+    />
   );
 }
 
@@ -64,29 +78,144 @@ function collectParentIds(nodes: SubtaskNode[]): Set<string> {
   return ids;
 }
 
-type SubtaskNodeItemProps = {
-  node: SubtaskNode;
+type SortableSubtaskListProps = {
+  nodes: SubtaskNode[];
   depth: number;
+  parentSubtaskId: string | null;
   workspace: Workspace;
   taskId: string;
   expanded: Set<string>;
   setExpanded: React.Dispatch<React.SetStateAction<Set<string>>>;
 };
 
-function SubtaskNodeItem({
+function SortableSubtaskList({
+  nodes: initialNodes,
+  depth,
+  parentSubtaskId,
+  workspace,
+  taskId,
+  expanded,
+  setExpanded,
+}: SortableSubtaskListProps) {
+  const [nodes, setNodes] = useState(initialNodes);
+  const [mounted, setMounted] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const dndId = parentSubtaskId ?? "root";
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = nodes.findIndex((node) => node.id === active.id);
+    const newIndex = nodes.findIndex((node) => node.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
+
+    const next = arrayMove(nodes, oldIndex, newIndex);
+    setNodes(next);
+
+    startTransition(async () => {
+      await reorderSubtasksAction(
+        workspace,
+        taskId,
+        next.map((node) => node.id)
+      );
+    });
+  }
+
+  const listItems = nodes.map((node, index) => (
+    <SortableSubtaskNodeItem
+      key={node.id}
+      node={node}
+      priority={index + 1}
+      depth={depth}
+      workspace={workspace}
+      taskId={taskId}
+      expanded={expanded}
+      setExpanded={setExpanded}
+      sortable={mounted}
+    />
+  ));
+
+  return (
+    <ul className={cn("space-y-1", pending && "opacity-70")}>
+      {mounted ? (
+        <DndContext
+          id={`${taskId}-${dndId}`}
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={nodes.map((node) => node.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {listItems}
+          </SortableContext>
+        </DndContext>
+      ) : (
+        listItems
+      )}
+    </ul>
+  );
+}
+
+type SortableSubtaskNodeItemProps = {
+  node: SubtaskNode;
+  priority: number;
+  depth: number;
+  workspace: Workspace;
+  taskId: string;
+  expanded: Set<string>;
+  setExpanded: React.Dispatch<React.SetStateAction<Set<string>>>;
+  sortable: boolean;
+};
+
+function SortableSubtaskNodeItem({
   node,
+  priority,
   depth,
   workspace,
   taskId,
   expanded,
   setExpanded,
-}: SubtaskNodeItemProps) {
+  sortable,
+}: SortableSubtaskNodeItemProps) {
   const [pending, startTransition] = useTransition();
   const [addingChild, setAddingChild] = useState(false);
   const isParent = node.children.length > 0;
   const isExpanded = expanded.has(node.id);
   const isDone = node.status === "done";
   const counts = getSubtreeLeafCounts(node);
+
+  const sortableState = useSortable({ id: node.id, disabled: !sortable });
+
+  const style = sortable
+    ? {
+        transform: CSS.Transform.toString(sortableState.transform),
+        transition: sortableState.transition,
+      }
+    : undefined;
 
   function toggleExpanded() {
     setExpanded((current) => {
@@ -117,15 +246,36 @@ function SubtaskNodeItem({
   }
 
   return (
-    <li>
+    <li ref={sortable ? sortableState.setNodeRef : undefined} style={style}>
       <div
         className={cn(
           "group flex items-center gap-2 rounded-lg border border-transparent py-2 pr-2",
           motion.row,
-          pending && "opacity-60"
+          pending && "opacity-60",
+          sortable && sortableState.isDragging && "relative z-10 border-border bg-card shadow-md"
         )}
         style={{ paddingLeft: `${depth * 14 + 4}px` }}
       >
+        {sortable ? (
+          <button
+            type="button"
+            className="inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-md text-muted hover:bg-card hover:text-foreground active:cursor-grabbing"
+            aria-label={`Reorder ${node.title}`}
+            {...sortableState.attributes}
+            {...sortableState.listeners}
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+        ) : (
+          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-muted">
+            <GripVertical className="h-3.5 w-3.5 opacity-40" />
+          </span>
+        )}
+
+        <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-accent">
+          {priority}
+        </span>
+
         {isParent ? (
           <button
             type="button"
@@ -197,19 +347,15 @@ function SubtaskNodeItem({
       )}
 
       {isParent && isExpanded && (
-        <ul>
-          {node.children.map((child) => (
-            <SubtaskNodeItem
-              key={child.id}
-              node={child}
-              depth={depth + 1}
-              workspace={workspace}
-              taskId={taskId}
-              expanded={expanded}
-              setExpanded={setExpanded}
-            />
-          ))}
-        </ul>
+        <SortableSubtaskList
+          nodes={node.children}
+          depth={depth + 1}
+          parentSubtaskId={node.id}
+          workspace={workspace}
+          taskId={taskId}
+          expanded={expanded}
+          setExpanded={setExpanded}
+        />
       )}
     </li>
   );

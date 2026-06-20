@@ -6,7 +6,6 @@ import { mainNav } from "@/lib/navigation";
 import { cn } from "@/lib/utils/cn";
 import { signOut } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/button";
-import { motion } from "@/lib/utils/motion";
 
 type SidebarProps = {
   userEmail?: string | null;
@@ -18,15 +17,15 @@ export function Sidebar({ userEmail, onNavigate }: SidebarProps) {
   const displayName = userEmail?.split("@")[0] ?? "User";
 
   return (
-    <aside className="flex h-full w-full flex-col border-r border-border bg-card lg:w-64">
-      <div className="border-b border-border px-5 py-6">
-        <p className="text-xs font-medium uppercase tracking-wider text-accent">
+    <aside className="flex h-full w-full flex-col overflow-hidden border-r border-border bg-card">
+      <div className="shrink-0 border-b border-border px-4 py-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
           TaskFlow
         </p>
-        <p className="mt-1 truncate text-sm text-muted">Welcome, {displayName}</p>
+        <p className="mt-1.5 truncate text-sm text-muted">Welcome, {displayName}</p>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
         {mainNav.map(({ label, href, icon: Icon, match }) => {
           const isActive = match ? match(pathname) : pathname === href;
 
@@ -36,27 +35,27 @@ export function Sidebar({ userEmail, onNavigate }: SidebarProps) {
               href={href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium motion-safe:transition-colors",
                 isActive
-                  ? cn("bg-primary text-white", motion.navItemActive)
-                  : cn("text-muted hover:bg-card-hover hover:text-foreground", motion.navItem)
+                  ? "bg-primary text-white shadow-sm shadow-primary/20"
+                  : "text-muted hover:bg-card-hover hover:text-foreground"
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              <span className="truncate">{label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-border p-4">
-        <p className="mb-3 truncate text-xs text-muted">{userEmail}</p>
+      <div className="shrink-0 border-t border-border p-4">
+        <p className="mb-3 truncate text-left text-xs text-muted">{userEmail}</p>
         <form action={signOut}>
           <Button type="submit" variant="secondary" size="sm" className="w-full">
             Sign out
           </Button>
         </form>
-        <p className="mt-4 text-center text-xs text-muted">
+        <p className="mt-3 text-left text-xs text-muted">
           {new Date().toLocaleDateString("en-US", {
             month: "long",
             year: "numeric",

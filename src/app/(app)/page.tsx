@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Briefcase, CalendarDays, Sun, Target } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/auth/actions";
 import { getWorkspaceStats, getDueSoonTasks } from "@/lib/db/tasks";
@@ -29,15 +29,13 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="relative flex min-h-full flex-1 flex-col overflow-hidden">
+    <div className="relative flex min-h-full min-w-0 flex-1 flex-col overflow-x-hidden">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_45%),radial-gradient(circle_at_bottom,_rgba(96,165,250,0.12),_transparent_40%)]" />
 
-      <header className="relative z-10 flex items-center justify-between border-b border-border/60 px-4 py-4 sm:px-8">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
-            TaskFlow
-          </p>
-        </div>
+      <header className="relative z-10 flex items-center justify-between border-b border-border/60 px-4 py-3 sm:px-8 sm:py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
+          TaskFlow
+        </p>
         <form action={signOut}>
           <Button type="submit" variant="secondary" size="sm">
             Logout
@@ -45,21 +43,23 @@ export default async function DashboardPage() {
         </form>
       </header>
 
-      <div className="relative z-10 flex flex-1 flex-col px-4 py-8 sm:px-8">
-        <div className="mx-auto w-full max-w-5xl text-center">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col px-4 py-5 sm:px-8 sm:py-8">
+        <div className="mx-auto w-full max-w-5xl min-w-0 text-center">
           <p className="text-sm text-muted">Welcome back,</p>
-          <h1 className="mt-2 text-3xl font-bold text-foreground sm:text-4xl">
+          <h1 className="mt-1 text-2xl font-bold text-foreground sm:mt-2 sm:text-4xl">
             {firstName}
           </h1>
-          <p className="mt-3 text-sm text-muted sm:text-base">
+          <p className="mt-2 text-sm text-muted">
             Choose your workspace to continue
           </p>
         </div>
 
-        <div className="mx-auto mt-8 w-full max-w-5xl space-y-6 animate-fade-in">
+        <div className="mx-auto mt-5 w-full max-w-5xl min-w-0 space-y-4 sm:mt-8 sm:space-y-6 animate-fade-in">
+          <QuickLinks />
+
           <ContinueTaskCard />
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid min-w-0 gap-4 sm:gap-6 lg:grid-cols-2">
             <WorkspaceCard
               emoji="💼"
               title="Office"
@@ -86,9 +86,33 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <footer className="relative z-10 border-t border-border/60 px-4 py-4 text-center text-sm text-muted">
+      <footer className="relative z-10 border-t border-border/60 px-4 py-3 text-center text-xs text-muted sm:py-4 sm:text-sm">
         Month: {monthLabel}
       </footer>
+    </div>
+  );
+}
+
+function QuickLinks() {
+  const links = [
+    { href: "/today", label: "Today", icon: Sun },
+    { href: "/office", label: "Office", icon: Briefcase },
+    { href: "/personal", label: "Personal", icon: Target },
+    { href: "/monthly", label: "Monthly", icon: CalendarDays },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+      {links.map(({ href, label, icon: Icon }) => (
+        <Link
+          key={href}
+          href={href}
+          className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-border/80 bg-card/80 px-3 py-2.5 text-sm font-medium text-foreground motion-safe:transition-colors hover:border-primary/40 hover:bg-card sm:py-3"
+        >
+          <Icon className="h-4 w-4 shrink-0 text-accent" />
+          <span className="truncate">{label}</span>
+        </Link>
+      ))}
     </div>
   );
 }
@@ -130,26 +154,28 @@ function WorkspaceCard({
   dueSoon,
 }: WorkspaceCardProps) {
   return (
-    <div className="flex flex-col rounded-2xl border border-border/80 bg-card/90 p-6 shadow-xl shadow-black/20 backdrop-blur-sm motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out motion-safe:hover:-translate-y-1 motion-safe:hover:border-primary/40 motion-safe:hover:bg-card motion-safe:hover:shadow-2xl motion-safe:hover:shadow-primary/10 motion-safe:active:translate-y-0 motion-safe:active:scale-[0.995]">
-      <div className="flex items-start gap-4">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
+    <div className="flex min-w-0 flex-col rounded-2xl border border-border/80 bg-card/90 p-4 shadow-lg shadow-black/10 backdrop-blur-sm sm:p-6 sm:shadow-xl sm:shadow-black/20 motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out lg:motion-safe:hover:-translate-y-1 lg:motion-safe:hover:border-primary/40 lg:motion-safe:hover:bg-card lg:motion-safe:hover:shadow-2xl lg:motion-safe:hover:shadow-primary/10">
+      <div className="flex min-w-0 items-center gap-3 sm:items-start sm:gap-4">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl sm:h-14 sm:w-14 sm:rounded-2xl sm:text-2xl">
           {emoji}
         </span>
-        <div>
-          <h2 className="text-2xl font-bold uppercase tracking-wide text-foreground">
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-bold uppercase tracking-wide text-foreground sm:text-2xl">
             {title}
           </h2>
-          <p className="mt-1 text-sm text-muted">{subtitle}</p>
+          <p className="mt-0.5 truncate text-xs text-muted sm:mt-1 sm:text-sm">
+            {subtitle}
+          </p>
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
+      <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:mt-6 sm:gap-4">
         <StatBlock label={activeLabel} value={activeCount} />
-        <StatBlock label="Due This Week" value={dueCount} accent />
+        <StatBlock label="Due This Week" shortLabel="Due Week" value={dueCount} accent />
       </div>
 
       {dueSoon.length > 0 && (
-        <ul className="mt-4 space-y-1 rounded-xl bg-background/50 px-4 py-3 text-sm text-muted">
+        <ul className="mt-3 space-y-1 rounded-lg bg-background/50 px-3 py-2 text-xs text-muted sm:mt-4 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm">
           {dueSoon.slice(0, 2).map((task) => (
             <li key={task.id} className="truncate">
               {task.title} · {formatTimelineDate(task.timeline_end)}
@@ -158,7 +184,7 @@ function WorkspaceCard({
         </ul>
       )}
 
-      <Link href={href} className="mt-6">
+      <Link href={href} className="mt-4 sm:mt-6">
         <Button className="w-full gap-2">
           {buttonLabel}
           <ArrowRight className="h-4 w-4" />
@@ -170,19 +196,24 @@ function WorkspaceCard({
 
 function StatBlock({
   label,
+  shortLabel,
   value,
   accent = false,
 }: {
   label: string;
+  shortLabel?: string;
   value: number;
   accent?: boolean;
 }) {
   return (
-    <div className="rounded-xl bg-background/60 px-4 py-3">
-      <p className={`text-2xl font-bold ${accent ? "text-accent" : "text-foreground"}`}>
+    <div className="min-w-0 rounded-lg bg-background/60 px-3 py-2.5 sm:rounded-xl sm:px-4 sm:py-3">
+      <p className={`text-xl font-bold sm:text-2xl ${accent ? "text-accent" : "text-foreground"}`}>
         {value}
       </p>
-      <p className="mt-1 text-xs text-muted">{label}</p>
+      <p className="mt-0.5 truncate text-[11px] text-muted sm:mt-1 sm:text-xs">
+        <span className="sm:hidden">{shortLabel ?? label}</span>
+        <span className="hidden sm:inline">{label}</span>
+      </p>
     </div>
   );
 }

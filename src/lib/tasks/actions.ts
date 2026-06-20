@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createTask, deleteTask, updateTask } from "@/lib/db/tasks";
+import { createTask, deleteTask, reorderTasks, updateTask } from "@/lib/db/tasks";
 import {
   createSubtask,
   deleteSubtask,
   getNextSubtaskSortOrder,
+  reorderSubtasks,
   updateSubtask,
 } from "@/lib/db/subtasks";
 import { createReview, deleteReview } from "@/lib/db/reviews";
@@ -16,6 +17,7 @@ import {
   getNextMonthlyEntrySortOrder,
 } from "@/lib/db/monthly";
 import type { SubtaskStatus, TaskStatus, Workspace } from "@/lib/types/app";
+import { getNextTaskSortOrder } from "@/lib/db/tasks";
 
 export type ActionState = {
   error?: string;
@@ -27,12 +29,14 @@ function revalidateTaskPaths(workspace: Workspace, taskId: string) {
   revalidatePath(`/${workspace}`);
   revalidatePath("/");
   revalidatePath("/monthly");
+  revalidatePath("/today");
 }
 
 function revalidateWorkspacePaths(workspace: Workspace) {
   revalidatePath(`/${workspace}`);
   revalidatePath("/");
   revalidatePath("/monthly");
+  revalidatePath("/today");
 }
 
 export async function createTaskAction(
@@ -55,6 +59,8 @@ export async function createTaskAction(
   let task;
 
   try {
+    const sortOrder = await getNextTaskSortOrder(workspace, category || null);
+
     task = await createTask({
       workspace,
       title,
@@ -64,6 +70,7 @@ export async function createTaskAction(
       timeline_end: timelineEnd || null,
       status,
       category: category || null,
+      sort_order: sortOrder,
     });
   } catch (error) {
     return {
@@ -75,13 +82,30 @@ export async function createTaskAction(
   redirect(`/${workspace}/${task.id}`);
 }
 
-export async function deleteTaskAction(workspace: Workspace, taskId: string) {
+export async function deleteTaskAction(
+  workspace: Workspace,
+  taskId: string,
+  returnTo?: string
+) {
   try {
     await deleteTask(taskId);
     revalidateWorkspacePaths(workspace);
-    redirect(`/${workspace}`);
+    redirect(returnTo ?? `/${workspace}`);
   } catch (error) {
     throw error instanceof Error ? error : new Error("Failed to delete task.");
+  }
+}
+
+export async function updateTaskStatusAction(
+  workspace: Workspace,
+  taskId: string,
+  status: TaskStatus
+) {
+  try {
+    await updateTask(taskId, { status });
+    revalidateTaskPaths(workspace, taskId);
+  } catch (error) {
+    throw error instanceof Error ? error : new Error("Failed to update status.");
   }
 }
 
@@ -182,6 +206,31 @@ export async function deleteSubtaskAction(
     revalidateTaskPaths(workspace, taskId);
   } catch (error) {
     throw error instanceof Error ? error : new Error("Failed to delete subtask.");
+  }
+}
+
+export async function reorderTasksAction(
+  workspace: Workspace,
+  taskIds: string[]
+) {
+  try {
+    await reorderTasks(taskIds);
+    revalidateWorkspacePaths(workspace);
+  } catch (error) {
+    throw error instanceof Error ? error : new Error("Failed to reorder tasks.");
+  }
+}
+
+export async function reorderSubtasksAction(
+  workspace: Workspace,
+  taskId: string,
+  subtaskIds: string[]
+) {
+  try {
+    await reorderSubtasks(subtaskIds);
+    revalidateTaskPaths(workspace, taskId);
+  } catch (error) {
+    throw error instanceof Error ? error : new Error("Failed to reorder subtasks.");
   }
 }
 

@@ -5,6 +5,7 @@ import { updateTaskDetails, type ActionState } from "@/lib/tasks/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { TASK_STATUSES } from "@/lib/constants/task-status";
 import type { TaskListItem } from "@/lib/db/queries";
 import type { Workspace } from "@/lib/types/app";
 
@@ -80,10 +81,11 @@ export function TaskEditForm({ workspace, task }: TaskEditFormProps) {
               defaultValue={task.status}
               className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             >
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="done">Done</option>
-              <option value="paused">Paused</option>
+              {TASK_STATUSES.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
             </select>
           </div>
 

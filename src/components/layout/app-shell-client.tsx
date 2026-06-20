@@ -18,12 +18,12 @@ export function AppShellClient({ userEmail, children }: AppShellClientProps) {
   const hideSidebar = pathname === "/";
 
   return (
-    <div className="flex min-h-full flex-1 bg-background">
+    <div className="min-h-screen min-w-0 overflow-x-hidden bg-background">
       {!hideSidebar && (
         <>
-          <div className="hidden lg:flex">
+          <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">
             <Sidebar userEmail={userEmail} />
-          </div>
+          </aside>
 
           {open && (
             <button
@@ -45,13 +45,18 @@ export function AppShellClient({ userEmail, children }: AppShellClientProps) {
         </>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div
+        className={cn(
+          "flex min-h-screen min-w-0 flex-col",
+          !hideSidebar && "lg:pl-64"
+        )}
+      >
         {!hideSidebar && (
-          <div className="flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
+          <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-foreground motion-safe:transition-all motion-safe:duration-150 hover:scale-105 hover:border-border-muted hover:bg-card-hover active:scale-95"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-foreground motion-safe:transition-all motion-safe:duration-150 hover:border-border-muted hover:bg-card-hover active:scale-95"
               aria-label="Open menu"
             >
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -61,7 +66,7 @@ export function AppShellClient({ userEmail, children }: AppShellClientProps) {
             </Link>
           </div>
         )}
-        {children}
+        <main className="flex min-w-0 flex-1 flex-col">{children}</main>
       </div>
     </div>
   );

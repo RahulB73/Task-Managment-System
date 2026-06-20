@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { ArrowRight } from "lucide-react";
+import { cookies } from "next/headers";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -27,19 +27,24 @@ export async function ContinueTaskCard() {
   const progress = calculateProgressFromSubtasks(subtasks);
 
   return (
-    <Card interactive className="border-primary/30 bg-primary/5 mx-4 sm:mx-0">
-      <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+    <Card interactive className="min-w-0 border-primary/30 bg-primary/5">
+      <CardContent className="flex min-w-0 flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-5">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-accent">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-accent sm:text-xs">
             Continue where you left off
           </p>
-          <p className="mt-1 truncate font-semibold text-foreground">{task.title}</p>
-          <div className="mt-3 max-w-sm">
-            <ProgressBar value={progress} showLabel />
+          <Link
+            href={`/${lastTask.workspace}/${task.id}`}
+            className="mt-1 block truncate font-semibold text-foreground hover:text-accent"
+          >
+            {task.title}
+          </Link>
+          <div className="mt-2 max-w-full sm:max-w-sm">
+            <ProgressBar value={progress} showLabel size="sm" />
           </div>
         </div>
         <Link href={`/${lastTask.workspace}/${task.id}`} className="shrink-0">
-          <Button className="gap-2">
+          <Button size="sm" className="w-full gap-2 sm:w-auto">
             Resume
             <ArrowRight className="h-4 w-4" />
           </Button>

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { assertList, assertNoError, assertSingle } from "@/lib/db/utils";
+import { UNCATEGORIZED_CATEGORY } from "@/lib/constants/categories";
 import type { Task } from "@/lib/types/database";
 import type {
   CreateTaskInput,
@@ -14,12 +15,7 @@ export async function getTasks(
 ): Promise<Task[]> {
   const supabase = await createClient();
 
-  let query = supabase
-    .from("tasks")
-    .select("*")
-    .eq("workspace", workspace)
-    .order("timeline_end", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+  let query = supabase.from("tasks").select("*").eq("workspace", workspace);
 
   if (filters?.search) {
     query = query.or(
@@ -27,8 +23,21 @@ export async function getTasks(
     );
   }
 
-  if (filters?.category) {
+  if (filters?.category === UNCATEGORIZED_CATEGORY) {
+    query = query.is("category", null);
+  } else if (filters?.category) {
     query = query.eq("category", filters.category);
+  }
+
+  if (filters?.category) {
+    query = query
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false });
+  } else {
+    query = query
+      .order("category", { ascending: true, nullsFirst: false })
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false });
   }
 
   if (filters?.status) {
@@ -132,23 +141,77 @@ export async function getWorkspaceStats(workspace: Workspace) {
 export async function getTaskCategories(
   workspace: Workspace
 ): Promise<string[]> {
+  const meta = await getWorkspaceCategoryMeta(workspace);
+  return meta.categories;
+}
+
+export async function getWorkspaceCategoryMeta(workspace: Workspace) {
   const supabase = await createClient();
   const result = await supabase
     .from("tasks")
     .select("category")
-    .eq("workspace", workspace)
-    .not("category", "is", null);
+    .eq("workspace", workspace);
 
-  const rows = assertList("getTaskCategories", result);
+  const rows = assertList("getWorkspaceCategoryMeta", result);
   const categories = new Set<string>();
+  let hasUncategorized = false;
 
   for (const row of rows) {
     if (row.category) {
       categories.add(row.category);
+    } else {
+      hasUncategorized = true;
     }
   }
 
-  return [...categories].sort();
+  return {
+    categories: [...categories].sort(),
+    hasUncategorized,
+  };
+}
+
+export async function getNextTaskSortOrder(
+  workspace: Workspace,
+  category: string | null
+): Promise<number> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("tasks")
+    .select("sort_order")
+    .eq("workspace", workspace)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+
+  query = category
+    ? query.eq("category", category)
+    : query.is("category", null);
+
+  const result = await query.maybeSingle();
+
+  if (result.error) {
+    throw new Error(`getNextTaskSortOrder: ${result.error.message}`);
+  }
+
+  return (result.data?.sort_order ?? -1) + 1;
+}
+
+export async function reorderTasks(taskIds: string[]): Promise<void> {
+  if (taskIds.length === 0) {
+    return;
+  }
+
+  const supabase = await createClient();
+
+  const updates = taskIds.map((id, index) =>
+    supabase.from("tasks").update({ sort_order: index }).eq("id", id)
+  );
+
+  const results = await Promise.all(updates);
+
+  for (const result of results) {
+    assertNoError("reorderTasks", { data: null, error: result.error });
+  }
 }
 
 export async function getDueSoonTasks(workspace: Workspace, limit = 3) {

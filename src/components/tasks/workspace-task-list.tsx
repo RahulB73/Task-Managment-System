@@ -1,21 +1,21 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ProgressBar } from "@/components/ui/progress-bar";
 import { CreateTaskForm } from "@/components/tasks/create-task-form";
-import { TaskActionsMenu } from "@/components/tasks/task-actions-menu";
+import { CopyTasksExcelButton } from "@/components/tasks/copy-tasks-excel-button";
+import {
+  CategoryFilterBar,
+  groupTasksByCategory,
+} from "@/components/tasks/category-filter-bar";
+import { SortableTaskTable } from "@/components/tasks/sortable-task-table";
 import {
   TaskFilters,
   parseTaskFilters,
   type TaskListSearchParams,
 } from "@/components/tasks/task-filters";
-import { getTasksWithProgress } from "@/lib/db/queries";
-import { getTaskCategories } from "@/lib/db/tasks";
-import { formatTimelineDate } from "@/lib/progress";
+import { getTasksWithProgress, getTodayTasksWithProgress } from "@/lib/db/queries";
+import { getWorkspaceCategoryMeta } from "@/lib/db/tasks";
+import { todayDateString } from "@/lib/export/tasks-to-excel";
 import type { Workspace } from "@/lib/types/app";
-import type { TaskListItem } from "@/lib/db/queries";
 
 type WorkspaceTaskListProps = {
   workspace: Workspace;
@@ -37,94 +37,90 @@ export async function WorkspaceTaskList({
   searchParams,
 }: WorkspaceTaskListProps) {
   const filters = parseTaskFilters(searchParams);
+  const activeCategory = filters.category;
+  const reportDate = todayDateString();
 
-  const [tasks, categories] = await Promise.all([
+  const [tasks, categoryMeta, todayOfficeTasks] = await Promise.all([
     getTasksWithProgress(workspace, filters),
-    getTaskCategories(workspace),
+    getWorkspaceCategoryMeta(workspace),
+    workspace === "office"
+      ? getTodayTasksWithProgress(reportDate).then((items) =>
+          items.filter((task) => task.workspace === "office")
+        )
+      : Promise.resolve([]),
   ]);
 
-  const hasFilters = Boolean(
-    filters.search || filters.category || filters.status || filters.month
+  const hasSecondaryFilters = Boolean(
+    filters.search || filters.status || filters.month
   );
+
+  const groupedTasks = groupTasksByCategory(tasks);
 
   return (
     <>
       <PageHeader
         title={title}
         description={description}
-        actions={<CreateTaskForm workspace={workspace} itemLabel={itemLabel} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {workspace === "office" && (
+              <CopyTasksExcelButton
+                tasks={todayOfficeTasks}
+                reportDate={reportDate}
+                label="Copy today for Excel"
+              />
+            )}
+            <CreateTaskForm workspace={workspace} itemLabel={itemLabel} />
+          </div>
+        }
       />
 
-      <div className="flex flex-1 flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 animate-fade-in">
-        <TaskFilters
+      <div className="flex min-w-0 flex-1 flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 animate-fade-in">
+        <CategoryFilterBar
           workspace={workspace}
-          categories={categories}
+          categories={categoryMeta.categories}
+          hasUncategorized={categoryMeta.hasUncategorized}
+          activeCategory={activeCategory}
           params={searchParams}
         />
+
+        <TaskFilters workspace={workspace} params={searchParams} />
 
         {tasks.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center">
               <p className="font-medium text-foreground">
-                {hasFilters ? "No matching items" : emptyTitle}
+                {hasSecondaryFilters || activeCategory
+                  ? "No matching items"
+                  : emptyTitle}
               </p>
               <p className="mt-2 text-sm text-muted">
-                {hasFilters
-                  ? "Try clearing filters or adjusting your search."
+                {hasSecondaryFilters || activeCategory
+                  ? "Try clearing filters or choosing another category."
                   : emptyDescription}
               </p>
             </CardContent>
           </Card>
+        ) : activeCategory ? (
+          <SortableTaskTable
+            workspace={workspace}
+            tasks={tasks}
+            dndId={`${workspace}-${activeCategory}`}
+          />
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
-            {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} workspace={workspace} />
+          <div className="space-y-5 sm:space-y-8">
+            {groupedTasks.map((group) => (
+              <SortableTaskTable
+                key={group.key}
+                workspace={workspace}
+                tasks={group.tasks}
+                sectionTitle={group.label}
+                dndId={`${workspace}-${group.key}`}
+              />
             ))}
           </div>
         )}
       </div>
     </>
-  );
-}
-
-function TaskCard({
-  task,
-  workspace,
-}: {
-  task: TaskListItem;
-  workspace: Workspace;
-}) {
-  return (
-    <Card interactive className="transition hover:border-primary/30 hover:bg-card-hover">
-      <CardContent className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-foreground">{task.title}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-              {task.category && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-accent">
-                  {task.category}
-                </span>
-              )}
-              <span>Due {formatTimelineDate(task.timeline_end)}</span>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Badge variant={task.status} />
-            <TaskActionsMenu
-              workspace={workspace}
-              taskId={task.id}
-              taskTitle={task.title}
-            />
-          </div>
-        </div>
-        <ProgressBar value={task.progress} showLabel />
-        <div className="flex justify-end">
-          <Link href={`/${workspace}/${task.id}`}>
-            <Button size="sm">View</Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

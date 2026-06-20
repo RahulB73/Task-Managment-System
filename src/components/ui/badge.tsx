@@ -12,6 +12,7 @@ const variantStyles: Record<BadgeVariant, string> = {
   default: "border-border bg-background text-muted",
   pending: "border-warning/30 bg-warning/10 text-warning",
   in_progress: "border-primary/30 bg-primary/10 text-accent",
+  in_testing: "border-warning/30 bg-warning/15 text-warning",
   done: "border-success/30 bg-success/10 text-success",
   paused: "border-border-muted bg-card text-muted",
   high: "border-danger/30 bg-danger/10 text-danger",
@@ -22,6 +23,7 @@ const variantStyles: Record<BadgeVariant, string> = {
 const labelMap: Record<string, string> = {
   pending: "Pending",
   in_progress: "In Progress",
+  in_testing: "In Testing / Review",
   done: "Done",
   paused: "Paused",
   high: "High",

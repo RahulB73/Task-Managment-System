@@ -3,6 +3,7 @@ import {
   Briefcase,
   Target,
   CalendarDays,
+  Sun,
   type LucideIcon,
 } from "lucide-react";
 
@@ -14,6 +15,12 @@ export type NavItem = {
 };
 
 export const mainNav: NavItem[] = [
+  {
+    label: "Today",
+    href: "/today",
+    icon: Sun,
+    match: (pathname) => pathname.startsWith("/today"),
+  },
   {
     label: "Dashboard",
     href: "/",
