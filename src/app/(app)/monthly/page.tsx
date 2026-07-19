@@ -37,7 +37,7 @@ export default async function MonthlyPage({ searchParams }: MonthlyPageProps) {
             />
             <button
               type="submit"
-              className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white"
+              className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
             >
               Go
             </button>

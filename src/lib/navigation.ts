@@ -4,6 +4,7 @@ import {
   Target,
   CalendarDays,
   Sun,
+  Timer,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,6 +21,12 @@ export const mainNav: NavItem[] = [
     href: "/today",
     icon: Sun,
     match: (pathname) => pathname.startsWith("/today"),
+  },
+  {
+    label: "Sessions",
+    href: "/sessions",
+    icon: Timer,
+    match: (pathname) => pathname.startsWith("/sessions"),
   },
   {
     label: "Dashboard",

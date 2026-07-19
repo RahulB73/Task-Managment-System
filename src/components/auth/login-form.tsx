@@ -44,7 +44,7 @@ export function LoginForm() {
           onClick={() => setMode("signin")}
           className={`flex-1 rounded-md px-3 py-2 text-sm font-medium motion-safe:transition-colors ${
             mode === "signin"
-              ? "bg-primary text-white"
+              ? "bg-primary text-primary-foreground"
               : "text-muted hover:text-foreground"
           }`}
         >
@@ -55,7 +55,7 @@ export function LoginForm() {
           onClick={() => setMode("signup")}
           className={`flex-1 rounded-md px-3 py-2 text-sm font-medium motion-safe:transition-colors ${
             mode === "signup"
-              ? "bg-primary text-white"
+              ? "bg-primary text-primary-foreground"
               : "text-muted hover:text-foreground"
           }`}
         >

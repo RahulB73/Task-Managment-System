@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, Briefcase, CalendarDays, Sun, Target } from "lucide-react";
+import { ArrowRight, Briefcase, CalendarDays, Sun, Target, Timer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/lib/auth/actions";
 import { getWorkspaceStats, getDueSoonTasks } from "@/lib/db/tasks";
 import { ContinueTaskCard } from "@/components/tasks/continue-task-card";
+import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { Button } from "@/components/ui/button";
 import { formatTimelineDate } from "@/lib/progress";
 import type { Task } from "@/lib/types/database";
@@ -30,18 +30,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="relative flex min-h-full min-w-0 flex-1 flex-col overflow-x-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_45%),radial-gradient(circle_at_bottom,_rgba(96,165,250,0.12),_transparent_40%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(182,255,51,0.12),_transparent_42%),radial-gradient(circle_at_bottom,_rgba(45,212,191,0.1),_transparent_40%)]" />
 
-      <header className="relative z-10 flex items-center justify-between border-b border-border/60 px-4 py-3 sm:px-8 sm:py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
-          TaskFlow
-        </p>
-        <form action={signOut}>
-          <Button type="submit" variant="secondary" size="sm">
-            Logout
-          </Button>
-        </form>
-      </header>
+      <DashboardHeader />
 
       <div className="relative z-10 flex min-w-0 flex-1 flex-col px-4 py-5 sm:px-8 sm:py-8">
         <div className="mx-auto w-full max-w-5xl min-w-0 text-center">
@@ -96,13 +87,14 @@ export default async function DashboardPage() {
 function QuickLinks() {
   const links = [
     { href: "/today", label: "Today", icon: Sun },
+    { href: "/sessions", label: "Sessions", icon: Timer },
     { href: "/office", label: "Office", icon: Briefcase },
     { href: "/personal", label: "Personal", icon: Target },
     { href: "/monthly", label: "Monthly", icon: CalendarDays },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
       {links.map(({ href, label, icon: Icon }) => (
         <Link
           key={href}

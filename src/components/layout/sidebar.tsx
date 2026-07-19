@@ -6,6 +6,7 @@ import { mainNav } from "@/lib/navigation";
 import { cn } from "@/lib/utils/cn";
 import { signOut } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 type SidebarProps = {
   userEmail?: string | null;
@@ -19,10 +20,13 @@ export function Sidebar({ userEmail, onNavigate }: SidebarProps) {
   return (
     <aside className="flex h-full w-full flex-col overflow-hidden border-r border-border bg-card">
       <div className="shrink-0 border-b border-border px-4 py-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-          TaskFlow
-        </p>
-        <p className="mt-1.5 truncate text-sm text-muted">Welcome, {displayName}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+            TaskFlow
+          </p>
+          <ThemeToggle compact />
+        </div>
+        <p className="mt-2 truncate text-sm text-muted">Welcome, {displayName}</p>
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
@@ -35,9 +39,9 @@ export function Sidebar({ userEmail, onNavigate }: SidebarProps) {
               href={href}
               onClick={onNavigate}
               className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium motion-safe:transition-colors",
+                "flex w-full items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium motion-safe:transition-all",
                 isActive
-                  ? "bg-primary text-white shadow-sm shadow-primary/20"
+                  ? "nav-active-pill shadow-sm"
                   : "text-muted hover:bg-card-hover hover:text-foreground"
               )}
             >

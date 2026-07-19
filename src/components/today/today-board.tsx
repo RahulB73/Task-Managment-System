@@ -111,7 +111,7 @@ export function TodayBoard({ date, todayTasks, availableTasks }: TodayBoardProps
               className={cn(
                 "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium motion-safe:transition-all",
                 isActive
-                  ? "border-primary bg-primary text-white shadow-sm"
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
                   : "border-border bg-card text-muted hover:border-primary/40 hover:bg-card-hover hover:text-foreground"
               )}
             >
@@ -120,7 +120,7 @@ export function TodayBoard({ date, todayTasks, availableTasks }: TodayBoardProps
               <span
                 className={cn(
                   "rounded-full px-2 py-0.5 text-xs",
-                  isActive ? "bg-white/20 text-white" : "bg-background text-muted"
+                  isActive ? "bg-black/15 text-primary-foreground" : "bg-background text-muted"
                 )}
               >
                 {count}

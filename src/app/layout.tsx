@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AppProviders } from "@/components/theme/app-providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,6 +18,18 @@ export const metadata: Metadata = {
   description: "Goal-driven task management for office and personal workspaces",
 };
 
+const themeScript = `
+(function() {
+  try {
+    var t = localStorage.getItem('taskflow-theme');
+    if (t !== 'light' && t !== 'dark') t = 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,8 +39,14 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col overflow-x-hidden">{children}</body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="flex min-h-full flex-col overflow-x-hidden">
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }

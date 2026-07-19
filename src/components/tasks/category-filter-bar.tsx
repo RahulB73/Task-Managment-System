@@ -57,7 +57,7 @@ function CategoryChip({
       className={cn(
         "inline-flex shrink-0 snap-start items-center rounded-full border px-3 py-2 text-sm font-medium touch-manipulation motion-safe:transition-all motion-safe:duration-200",
         active
-          ? "border-primary bg-primary text-white shadow-sm"
+          ? "border-primary bg-primary text-primary-foreground shadow-sm"
           : "border-border bg-card text-muted hover:border-primary/40 hover:bg-card-hover hover:text-foreground"
       )}
     >

@@ -11,7 +11,7 @@ type BadgeVariant =
 const variantStyles: Record<BadgeVariant, string> = {
   default: "border-border bg-background text-muted",
   pending: "border-warning/30 bg-warning/10 text-warning",
-  in_progress: "border-primary/30 bg-primary/10 text-accent",
+  in_progress: "border-primary/40 bg-primary/10 text-primary",
   in_testing: "border-warning/30 bg-warning/15 text-warning",
   done: "border-success/30 bg-success/10 text-success",
   paused: "border-border-muted bg-card text-muted",

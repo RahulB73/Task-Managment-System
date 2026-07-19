@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils/cn";
 
 type AppShellClientProps = {
@@ -61,9 +62,10 @@ export function AppShellClient({ userEmail, children }: AppShellClientProps) {
             >
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <Link href="/" className="text-sm font-semibold text-accent">
+            <Link href="/" className="flex-1 text-sm font-semibold text-primary">
               TaskFlow
             </Link>
+            <ThemeToggle compact />
           </div>
         )}
         <main className="flex min-w-0 flex-1 flex-col">{children}</main>

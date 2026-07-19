@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createTaskAction, type ActionState } from "@/lib/tasks/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Modal } from "@/components/ui/modal";
 import { TASK_STATUSES } from "@/lib/constants/task-status";
 import type { Workspace } from "@/lib/types/app";
 
@@ -24,67 +25,84 @@ export function CreateTaskForm({ workspace, itemLabel }: CreateTaskFormProps) {
 
   const [state, formAction, pending] = useActionState(createAction, initialState);
 
+  useEffect(() => {
+    if (state.success) {
+      setOpen(false);
+    }
+  }, [state.success]);
+
   return (
-    <div>
-      <Button type="button" onClick={() => setOpen((value) => !value)}>
-        {open ? "Cancel" : `+ Add ${itemLabel}`}
+    <>
+      <Button type="button" onClick={() => setOpen(true)}>
+        + Add {itemLabel}
       </Button>
 
-      {open && (
-        <form
-          action={formAction}
-          className="mt-4 space-y-4 rounded-xl border border-border bg-card p-5 animate-scale-in motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-lg"
-        >
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={`New ${itemLabel.toLowerCase()}`}
+        description="Fill the essentials — you can refine details later."
+        size="lg"
+      >
+        <form action={formAction} className="space-y-4">
           <Input
             label="Title"
             name="title"
             placeholder={`New ${itemLabel.toLowerCase()} title`}
             required
+            autoFocus
           />
-          <Input
-            label="Category"
-            name="category"
-            placeholder="e.g. AI Mastery"
-          />
-          <Textarea
-            label="Purpose"
-            name="purpose"
-            placeholder="Why does this matter?"
-          />
-          <Textarea
-            label="Expected result"
-            name="expected_result"
-            placeholder="What does done look like?"
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Client / Category"
+              name="category"
+              placeholder="e.g. UPSC"
+            />
+            <div>
+              <label htmlFor="create-status" className="mb-2 block text-sm text-muted">
+                Status
+              </label>
+              <select
+                id="create-status"
+                name="status"
+                defaultValue="in_progress"
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+              >
+                {TASK_STATUSES.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Start date" name="timeline_start" type="date" />
             <Input label="Due date" name="timeline_end" type="date" />
           </div>
-          <div>
-            <label htmlFor="create-status" className="mb-2 block text-sm text-muted">
-              Status
-            </label>
-            <select
-              id="create-status"
-              name="status"
-              defaultValue="in_progress"
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-            >
-              {TASK_STATUSES.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Textarea
+            label="Purpose (optional)"
+            name="purpose"
+            placeholder="Why does this matter?"
+          />
+          <Textarea
+            label="Expected result (optional)"
+            name="expected_result"
+            placeholder="What does done look like?"
+          />
 
           {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
-          <Button type="submit" disabled={pending}>
-            {pending ? "Creating..." : `Create ${itemLabel.toLowerCase()}`}
-          </Button>
+          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {pending ? "Creating..." : `Create ${itemLabel.toLowerCase()}`}
+            </Button>
+          </div>
         </form>
-      )}
-    </div>
+      </Modal>
+    </>
   );
 }

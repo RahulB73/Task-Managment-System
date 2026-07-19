@@ -186,6 +186,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          linked_task_id: string | null;
+          status: "active" | "done";
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          title: string;
+          linked_task_id?: string | null;
+          status?: "active" | "done";
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          linked_task_id?: string | null;
+          status?: "active" | "done";
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      session_items: {
+        Row: {
+          id: string;
+          session_id: string;
+          parent_item_id: string | null;
+          user_id: string;
+          title: string;
+          status: "pending" | "done";
+          linked_subtask_id: string | null;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          parent_item_id?: string | null;
+          user_id?: string;
+          title: string;
+          status?: "pending" | "done";
+          linked_subtask_id?: string | null;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          parent_item_id?: string | null;
+          user_id?: string;
+          title?: string;
+          status?: "pending" | "done";
+          linked_subtask_id?: string | null;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -208,3 +280,5 @@ export type Subtask = Tables<"subtasks">;
 export type Review = Tables<"reviews">;
 export type MonthlyEntry = Tables<"monthly_entries">;
 export type DailyPriority = Tables<"daily_priorities">;
+export type Session = Tables<"sessions">;
+export type SessionItem = Tables<"session_items">;
