@@ -1,14 +1,22 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
+import { Briefcase, Target } from "lucide-react";
 import { createSessionAction, type SessionActionState } from "@/lib/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import type { Session } from "@/lib/types/database";
 import type { Task } from "@/lib/types/database";
+import type { Workspace } from "@/lib/types/app";
+import { cn } from "@/lib/utils/cn";
 
 const initialState: SessionActionState = {};
+
+const TASK_TABS: { id: Workspace; label: string; icon: typeof Briefcase }[] = [
+  { id: "office", label: "Office", icon: Briefcase },
+  { id: "personal", label: "Personal", icon: Target },
+];
 
 type CreateSessionFormProps = {
   tasks: Task[];
@@ -17,9 +25,14 @@ type CreateSessionFormProps = {
 
 export function CreateSessionForm({ tasks, existingSessions }: CreateSessionFormProps) {
   const [open, setOpen] = useState(false);
+  const [taskTab, setTaskTab] = useState<Workspace>("office");
   const [state, formAction, pending] = useActionState(createSessionAction, initialState);
 
   const unfinishedSessions = existingSessions.filter((session) => session.status === "active");
+  const tasksForTab = useMemo(
+    () => tasks.filter((task) => task.workspace === taskTab),
+    [tasks, taskTab]
+  );
 
   return (
     <>
@@ -44,19 +57,38 @@ export function CreateSessionForm({ tasks, existingSessions }: CreateSessionForm
           />
 
           <div>
-            <label htmlFor="linked-task" className="mb-2 block text-sm text-muted">
+            <label className="mb-2 block text-sm text-muted">
               Link to main task (optional)
             </label>
+            <div className="mb-2 flex gap-2">
+              {TASK_TABS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTaskTab(id)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium motion-safe:transition-all",
+                    taskTab === id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-muted hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
             <select
+              key={taskTab}
               id="linked-task"
               name="linked_task_id"
               defaultValue=""
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
             >
               <option value="">Independent session</option>
-              {tasks.map((task) => (
+              {tasksForTab.map((task) => (
                 <option key={task.id} value={task.id}>
-                  [{task.workspace}] {task.title}
+                  {task.title}
                   {task.category ? ` · ${task.category}` : ""}
                 </option>
               ))}

@@ -72,6 +72,13 @@ export async function createTaskAction(
       category: category || null,
       sort_order: sortOrder,
     });
+
+    await createSubtask({
+      task_id: task.id,
+      parent_subtask_id: null,
+      title,
+      sort_order: 0,
+    });
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to create task.",

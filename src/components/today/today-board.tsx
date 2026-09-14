@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Briefcase, Plus, Search, Target } from "lucide-react";
+import { Briefcase, History, Plus, Search, Target } from "lucide-react";
 import { SortableTaskTable } from "@/components/tasks/sortable-task-table";
 import { CopyTasksExcelButton } from "@/components/tasks/copy-tasks-excel-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   addTaskToTodayAction,
+  carryOverYesterdayAction,
   removeTaskFromTodayAction,
   reorderTodayTasksAction,
 } from "@/lib/daily/actions";
@@ -31,6 +32,8 @@ export function TodayBoard({ date, todayTasks, availableTasks }: TodayBoardProps
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [pending, startTransition] = useTransition();
+  const [carryOverPending, startCarryOverTransition] = useTransition();
+  const [carryOverMessage, setCarryOverMessage] = useState<string | null>(null);
 
   const officeToday = useMemo(
     () => todayTasks.filter((task) => task.workspace === "office"),
@@ -72,6 +75,18 @@ export function TodayBoard({ date, todayTasks, availableTasks }: TodayBoardProps
     });
   }
 
+  function handleCarryOverYesterday() {
+    setCarryOverMessage(null);
+    startCarryOverTransition(async () => {
+      const result = await carryOverYesterdayAction(date);
+      setCarryOverMessage(
+        result.added > 0
+          ? `Added ${result.added} unfinished task${result.added === 1 ? "" : "s"} from yesterday.`
+          : "No unfinished tasks from yesterday."
+      );
+    });
+  }
+
   const returnTo = `/today?date=${date}`;
 
   return (
@@ -88,12 +103,26 @@ export function TodayBoard({ date, todayTasks, availableTasks }: TodayBoardProps
               label="Copy for Excel"
             />
           )}
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={carryOverPending}
+            onClick={handleCarryOverYesterday}
+          >
+            <History className="h-4 w-4" />
+            {carryOverPending ? "Bringing forward..." : "Bring yesterday's unfinished"}
+          </Button>
           <Button type="button" size="sm" onClick={() => setPickerOpen((open) => !open)}>
             <Plus className="h-4 w-4" />
             Add {activeTab === "office" ? "office" : "personal"} task
           </Button>
         </div>
       </div>
+
+      {carryOverMessage && (
+        <p className="text-xs text-muted">{carryOverMessage}</p>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {TABS.map(({ id, label, icon: Icon }) => {

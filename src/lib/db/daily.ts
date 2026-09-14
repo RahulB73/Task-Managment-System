@@ -25,6 +25,27 @@ export async function getDailyPriorityTaskIds(date: string): Promise<string[]> {
   return rows.map((row) => row.task_id);
 }
 
+export async function getIncompleteDailyTaskIds(date: string): Promise<string[]> {
+  const dailyRows = await getDailyPriorities(date);
+
+  if (dailyRows.length === 0) {
+    return [];
+  }
+
+  const supabase = await createClient();
+  const taskIds = dailyRows.map((row) => row.task_id);
+
+  const result = await supabase.from("tasks").select("id, status").in("id", taskIds);
+
+  if (result.error) {
+    throw new Error(`getIncompleteDailyTaskIds: ${result.error.message}`);
+  }
+
+  return (result.data ?? [])
+    .filter((task) => task.status !== "done")
+    .map((task) => task.id);
+}
+
 export async function addDailyPriority(
   date: string,
   taskId: string

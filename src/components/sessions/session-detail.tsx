@@ -20,11 +20,13 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  Briefcase,
   ChevronDown,
   ChevronRight,
   GripVertical,
   Link2,
   Plus,
+  Target,
   Trash2,
 } from "lucide-react";
 import {
@@ -50,6 +52,11 @@ type PickableSubtask = Subtask & {
   taskTitle: string;
   workspace: string;
 };
+
+const WORKSPACE_TABS: { id: "office" | "personal"; label: string; icon: typeof Briefcase }[] = [
+  { id: "office", label: "Office", icon: Briefcase },
+  { id: "personal", label: "Personal", icon: Target },
+];
 
 type SessionDetailProps = {
   session: Session;
@@ -530,6 +537,8 @@ function AddItemModal({
   const [mode, setMode] = useState<"new" | "pick">(initialMode);
   const [itemTitle, setItemTitle] = useState("");
   const [search, setSearch] = useState("");
+  const [pickWorkspace, setPickWorkspace] = useState<"office" | "personal">("office");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -537,12 +546,15 @@ function AddItemModal({
       setMode(initialMode);
       setItemTitle("");
       setSearch("");
+      setSelectedIds(new Set());
     }
   }, [open, initialMode]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const available = pickableSubtasks.filter((item) => item.status !== "done");
+    const available = pickableSubtasks.filter(
+      (item) => item.status !== "done" && item.workspace === pickWorkspace
+    );
     if (!query) {
       return available.slice(0, 30);
     }
@@ -553,7 +565,19 @@ function AddItemModal({
           item.taskTitle.toLowerCase().includes(query)
       )
       .slice(0, 30);
-  }, [pickableSubtasks, search]);
+  }, [pickableSubtasks, search, pickWorkspace]);
+
+  function toggleSelected(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
 
   function handleAddNew(event: React.FormEvent) {
     event.preventDefault();
@@ -570,14 +594,19 @@ function AddItemModal({
     });
   }
 
-  function handlePick(subtask: PickableSubtask) {
+  function handlePickSelected() {
+    const chosen = pickableSubtasks.filter((item) => selectedIds.has(item.id));
+    if (chosen.length === 0) {
+      return;
+    }
+
     startTransition(async () => {
-      await addLinkedSubtaskAction(
-        sessionId,
-        subtask.id,
-        subtask.title,
-        parentItemId
+      await Promise.all(
+        chosen.map((subtask) =>
+          addLinkedSubtaskAction(sessionId, subtask.id, subtask.title, parentItemId)
+        )
       );
+      setSelectedIds(new Set());
       onClose();
     });
   }
@@ -642,40 +671,81 @@ function AddItemModal({
           </form>
         ) : (
           <div className="space-y-3">
+            <div className="flex gap-2">
+              {WORKSPACE_TABS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setPickWorkspace(id)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium motion-safe:transition-all",
+                    pickWorkspace === id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-muted hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search main-task subtasks..."
+              placeholder={`Search ${pickWorkspace} subtasks...`}
               autoFocus
             />
             {filtered.length === 0 ? (
               <p className="text-sm text-muted">No open subtasks found.</p>
             ) : (
               <ul className="max-h-64 space-y-2 overflow-y-auto">
-                {filtered.map((subtask) => (
-                  <li
-                    key={subtask.id}
-                    className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-background/50 px-3 py-2.5"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm text-foreground">{subtask.title}</p>
-                      <p className="truncate text-[11px] text-muted">
-                        {subtask.workspace} · {subtask.taskTitle}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      disabled={pending}
-                      onClick={() => handlePick(subtask)}
-                    >
-                      Add
-                    </Button>
-                  </li>
-                ))}
+                {filtered.map((subtask) => {
+                  const checked = selectedIds.has(subtask.id);
+                  return (
+                    <li key={subtask.id}>
+                      <label
+                        className={cn(
+                          "flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5",
+                          checked
+                            ? "border-primary bg-primary/5"
+                            : "border-border/70 bg-background/50"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSelected(subtask.id)}
+                          className="h-4 w-4 shrink-0 cursor-pointer rounded border-border bg-background accent-primary"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm text-foreground">{subtask.title}</p>
+                          <p className="truncate text-[11px] text-muted">
+                            {subtask.workspace} · {subtask.taskTitle}
+                          </p>
+                        </div>
+                      </label>
+                    </li>
+                  );
+                })}
               </ul>
             )}
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <p className="text-xs text-muted">
+                {selectedIds.size} selected
+              </p>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  disabled={pending || selectedIds.size === 0}
+                  onClick={handlePickSelected}
+                >
+                  {pending ? "Adding..." : `Add ${selectedIds.size} selected`}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
