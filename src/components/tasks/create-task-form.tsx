@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Modal } from "@/components/ui/modal";
 import { TASK_STATUSES } from "@/lib/constants/task-status";
+import { getTodayInputValue, getWeekFridayInputValue } from "@/lib/utils/dates";
 import type { Workspace } from "@/lib/types/app";
 
 const initialState: ActionState = {};
@@ -18,6 +19,14 @@ type CreateTaskFormProps = {
 
 export function CreateTaskForm({ workspace, itemLabel }: CreateTaskFormProps) {
   const [open, setOpen] = useState(false);
+  const [defaults, setDefaults] = useState({ start: "", end: "" });
+  const [showMore, setShowMore] = useState(false);
+
+  function openForm() {
+    setDefaults({ start: getTodayInputValue(), end: getWeekFridayInputValue() });
+    setShowMore(false);
+    setOpen(true);
+  }
 
   async function createAction(_prevState: ActionState, formData: FormData) {
     return createTaskAction(workspace, _prevState, formData);
@@ -33,7 +42,7 @@ export function CreateTaskForm({ workspace, itemLabel }: CreateTaskFormProps) {
 
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)}>
+      <Button type="button" onClick={openForm}>
         + Add {itemLabel}
       </Button>
 
@@ -41,7 +50,7 @@ export function CreateTaskForm({ workspace, itemLabel }: CreateTaskFormProps) {
         open={open}
         onClose={() => setOpen(false)}
         title={`New ${itemLabel.toLowerCase()}`}
-        description="Fill the essentials — you can refine details later."
+        description="Just a title is enough. Status starts as Pending, dates default to today → this Friday."
         size="lg"
       >
         <form action={formAction} className="space-y-4">
@@ -65,7 +74,7 @@ export function CreateTaskForm({ workspace, itemLabel }: CreateTaskFormProps) {
               <select
                 id="create-status"
                 name="status"
-                defaultValue="in_progress"
+                defaultValue="pending"
                 className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
               >
                 {TASK_STATUSES.map((status) => (
@@ -77,19 +86,40 @@ export function CreateTaskForm({ workspace, itemLabel }: CreateTaskFormProps) {
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Start date" name="timeline_start" type="date" />
-            <Input label="Due date" name="timeline_end" type="date" />
+            <Input
+              label="Start date"
+              name="timeline_start"
+              type="date"
+              defaultValue={defaults.start}
+              key={`start-${defaults.start}`}
+            />
+            <Input
+              label="Due date"
+              name="timeline_end"
+              type="date"
+              defaultValue={defaults.end}
+              key={`end-${defaults.end}`}
+            />
           </div>
-          <Textarea
-            label="Purpose (optional)"
-            name="purpose"
-            placeholder="Why does this matter?"
-          />
-          <Textarea
-            label="Expected result (optional)"
-            name="expected_result"
-            placeholder="What does done look like?"
-          />
+          <button
+            type="button"
+            onClick={() => setShowMore((value) => !value)}
+            className="text-sm font-medium text-accent hover:underline"
+          >
+            {showMore ? "Hide details" : "+ Add purpose & expected result"}
+          </button>
+          <div className={showMore ? "space-y-4" : "hidden"}>
+            <Textarea
+              label="Purpose (optional)"
+              name="purpose"
+              placeholder="Why does this matter?"
+            />
+            <Textarea
+              label="Expected result (optional)"
+              name="expected_result"
+              placeholder="What does done look like?"
+            />
+          </div>
 
           {state.error && <p className="text-sm text-danger">{state.error}</p>}
 

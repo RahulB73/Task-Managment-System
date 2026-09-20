@@ -26,6 +26,7 @@ type CreateSessionFormProps = {
 export function CreateSessionForm({ tasks, existingSessions }: CreateSessionFormProps) {
   const [open, setOpen] = useState(false);
   const [taskTab, setTaskTab] = useState<Workspace>("office");
+  const [defaultTitle, setDefaultTitle] = useState("");
   const [state, formAction, pending] = useActionState(createSessionAction, initialState);
 
   const unfinishedSessions = existingSessions.filter((session) => session.status === "active");
@@ -36,7 +37,18 @@ export function CreateSessionForm({ tasks, existingSessions }: CreateSessionForm
 
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        onClick={() => {
+          const time = new Date().toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          });
+          setDefaultTitle(`Session · ${time}`);
+          setOpen(true);
+        }}
+        className="w-full sm:w-auto"
+      >
         + New session
       </Button>
 
@@ -44,7 +56,7 @@ export function CreateSessionForm({ tasks, existingSessions }: CreateSessionForm
         open={open}
         onClose={() => setOpen(false)}
         title="New session"
-        description="Start an hourly checklist. Optionally carry unfinished items from a previous session."
+        description="Just tap Start — the title is pre-filled. Link a task or carry over unfinished items only if you need to."
         size="md"
       >
         <form action={formAction} className="space-y-4">
@@ -52,8 +64,11 @@ export function CreateSessionForm({ tasks, existingSessions }: CreateSessionForm
             label="Session title"
             name="title"
             placeholder="e.g. Hour 1 · Morning focus"
+            defaultValue={defaultTitle}
+            key={defaultTitle}
             required
             autoFocus
+            onFocus={(event) => event.currentTarget.select()}
           />
 
           <div>
@@ -126,7 +141,7 @@ export function CreateSessionForm({ tasks, existingSessions }: CreateSessionForm
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Creating..." : "Create session"}
+              {pending ? "Starting..." : "Start session"}
             </Button>
           </div>
         </form>

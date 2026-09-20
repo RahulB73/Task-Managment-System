@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
+import { mainNav } from "@/lib/navigation";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils/cn";
 
@@ -68,8 +69,33 @@ export function AppShellClient({ userEmail, children }: AppShellClientProps) {
             <ThemeToggle compact />
           </div>
         )}
-        <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+        <main className="flex min-w-0 flex-1 flex-col pb-20 lg:pb-0">{children}</main>
       </div>
+
+      <nav
+        aria-label="Quick navigation"
+        className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      >
+        {mainNav
+          .filter((item) => item.label !== "Monthly Progress")
+          .map(({ label, href, icon: Icon, match }) => {
+            const isActive = match ? match(pathname) : pathname === href;
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium active:bg-card-hover",
+                  isActive ? "text-primary" : "text-muted"
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                {label}
+              </Link>
+            );
+          })}
+      </nav>
     </div>
   );
 }

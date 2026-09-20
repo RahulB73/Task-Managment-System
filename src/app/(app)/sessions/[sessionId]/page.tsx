@@ -33,17 +33,35 @@ export default async function SessionPage({ params }: SessionPageProps) {
     session.linked_task_id ? getTask(session.linked_task_id) : Promise.resolve(null),
   ]);
 
-  const allTasks = [...officeTasks, ...personalTasks].filter(
-    (task) => task.status !== "done"
-  );
+  const allTasks = linkedTask
+    ? [linkedTask]
+    : [...officeTasks, ...personalTasks].filter((task) => task.status !== "done");
   const subtasks = await getSubtasksByTaskIds(allTasks.map((task) => task.id));
   const taskMap = new Map(allTasks.map((task) => [task.id, task]));
 
-  const pickableSubtasks = subtasks
-    .map((subtask) => {
+  const childrenByParent = new Map<string | null, typeof subtasks>();
+  for (const subtask of subtasks) {
+    const key = subtask.parent_subtask_id ?? null;
+    const list = childrenByParent.get(key) ?? [];
+    list.push(subtask);
+    childrenByParent.set(key, list);
+  }
+
+  const orderedSubtasks: { subtask: (typeof subtasks)[number]; depth: number }[] = [];
+  const walk = (parentId: string | null, depth: number) => {
+    for (const subtask of childrenByParent.get(parentId) ?? []) {
+      orderedSubtasks.push({ subtask, depth });
+      walk(subtask.id, depth + 1);
+    }
+  };
+  walk(null, 0);
+
+  const pickableSubtasks = orderedSubtasks
+    .map(({ subtask, depth }) => {
       const task = taskMap.get(subtask.task_id);
       return {
         ...subtask,
+        depth,
         taskTitle: task?.title ?? "Task",
         workspace: task?.workspace ?? "office",
       };

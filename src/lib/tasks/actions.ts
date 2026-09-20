@@ -18,6 +18,7 @@ import {
 } from "@/lib/db/monthly";
 import type { SubtaskStatus, TaskStatus, Workspace } from "@/lib/types/app";
 import { getNextTaskSortOrder } from "@/lib/db/tasks";
+import { getTodayInputValue, getWeekFridayInputValue } from "@/lib/utils/dates";
 
 export type ActionState = {
   error?: string;
@@ -49,7 +50,7 @@ export async function createTaskAction(
   const expectedResult = String(formData.get("expected_result") ?? "").trim();
   const timelineStart = String(formData.get("timeline_start") ?? "").trim();
   const timelineEnd = String(formData.get("timeline_end") ?? "").trim();
-  const status = String(formData.get("status") ?? "in_progress") as TaskStatus;
+  const status = String(formData.get("status") ?? "pending") as TaskStatus;
   const category = String(formData.get("category") ?? "").trim();
 
   if (!title) {
@@ -66,8 +67,8 @@ export async function createTaskAction(
       title,
       purpose: purpose || null,
       expected_result: expectedResult || null,
-      timeline_start: timelineStart || null,
-      timeline_end: timelineEnd || null,
+      timeline_start: timelineStart || getTodayInputValue(),
+      timeline_end: timelineEnd || getWeekFridayInputValue(),
       status,
       category: category || null,
       sort_order: sortOrder,

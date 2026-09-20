@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -51,7 +59,10 @@ import { motion } from "@/lib/utils/motion";
 type PickableSubtask = Subtask & {
   taskTitle: string;
   workspace: string;
+  depth: number;
 };
+
+const LinkedSessionContext = createContext(false);
 
 const WORKSPACE_TABS: { id: "office" | "personal"; label: string; icon: typeof Briefcase }[] = [
   { id: "office", label: "Office", icon: Briefcase },
@@ -88,6 +99,7 @@ export function SessionDetail({
   }
 
   return (
+    <LinkedSessionContext.Provider value={linkedTask !== null}>
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -131,17 +143,18 @@ export function SessionDetail({
         </div>
       </div>
 
+      <AddSessionItemButtons
+        sessionId={session.id}
+        pickableSubtasks={pickableSubtasks}
+      />
+
       <SessionItemTree
         sessionId={session.id}
         nodes={initialTree}
         pickableSubtasks={pickableSubtasks}
       />
-
-      <AddSessionItemButtons
-        sessionId={session.id}
-        pickableSubtasks={pickableSubtasks}
-      />
     </div>
+    </LinkedSessionContext.Provider>
   );
 }
 
@@ -161,7 +174,7 @@ function SessionItemTree({
   if (nodes.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-border bg-card/50 px-4 py-8 text-center text-sm text-muted">
-        No checklist items yet. Add a quick item or pick a main-task subtask below.
+        No checklist items yet. Type a task above or pick subtasks from your main task.
       </p>
     );
   }
@@ -400,12 +413,12 @@ function SessionItemRow({
             )}
           </button>
         ) : (
-          <label className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center">
+          <label className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center sm:h-7 sm:w-7">
             <input
               type="checkbox"
               checked={isDone}
               onChange={handleToggle}
-              className="h-4 w-4 cursor-pointer rounded border-border bg-background accent-primary"
+              className="h-5 w-5 cursor-pointer sm:h-4 sm:w-4 rounded border-border bg-background accent-primary"
               aria-label={`Mark ${node.title} as done`}
             />
           </label>
@@ -441,14 +454,14 @@ function SessionItemRow({
         <button
           type="button"
           onClick={() => setAddOpen(true)}
-          className="rounded-md px-2 py-1 text-xs text-accent hover:bg-card"
+          className="rounded-md px-2 py-2 text-xs text-accent hover:bg-card sm:py-1"
         >
           + Child
         </button>
         <button
           type="button"
           onClick={handleDelete}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-danger/10 hover:text-danger"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-md text-muted hover:bg-danger/10 hover:text-danger sm:h-8 sm:w-8"
           aria-label="Delete item"
         >
           <Trash2 className="h-4 w-4" />
@@ -486,32 +499,63 @@ function AddSessionItemButtons({
   sessionId: string;
   pickableSubtasks: PickableSubtask[];
 }) {
-  const [mode, setMode] = useState<"new" | "pick" | null>(null);
+  const [pickOpen, setPickOpen] = useState(false);
+  const [quickTitle, setQuickTitle] = useState("");
+  const [pending, startTransition] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function handleQuickAdd(event: React.FormEvent) {
+    event.preventDefault();
+    const title = quickTitle.trim();
+    if (!title) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("title", title);
+    setQuickTitle("");
+    startTransition(async () => {
+      await addSessionItemAction(sessionId, formData);
+      inputRef.current?.focus();
+    });
+  }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button type="button" size="sm" onClick={() => setMode("new")} className="gap-1.5">
-        <Plus className="h-4 w-4" />
-        Add item
-      </Button>
+    <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+      <form onSubmit={handleQuickAdd} className="flex gap-2">
+        <Input
+          ref={inputRef}
+          value={quickTitle}
+          onChange={(event) => setQuickTitle(event.target.value)}
+          placeholder="Type a task and press Enter..."
+          enterKeyHint="done"
+        />
+        <Button
+          type="submit"
+          disabled={pending || !quickTitle.trim()}
+          className="shrink-0 gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Add
+        </Button>
+      </form>
       <Button
         type="button"
-        size="sm"
         variant="secondary"
-        onClick={() => setMode("pick")}
-        className="gap-1.5"
+        onClick={() => setPickOpen(true)}
+        className="w-full gap-1.5 sm:w-auto"
       >
         <Link2 className="h-4 w-4" />
-        Pick from main task
+        Pick subtasks from main task
       </Button>
 
       <AddItemModal
-        open={mode !== null}
-        onClose={() => setMode(null)}
+        open={pickOpen}
+        onClose={() => setPickOpen(false)}
         sessionId={sessionId}
         pickableSubtasks={pickableSubtasks}
-        title={mode === "pick" ? "Pick from main task" : "Add checklist item"}
-        initialMode={mode ?? "new"}
+        title="Pick from main task"
+        initialMode="pick"
       />
     </div>
   );
@@ -540,6 +584,7 @@ function AddItemModal({
   const [pickWorkspace, setPickWorkspace] = useState<"office" | "personal">("office");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
+  const linkedOnly = useContext(LinkedSessionContext);
 
   useEffect(() => {
     if (open) {
@@ -553,10 +598,12 @@ function AddItemModal({
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     const available = pickableSubtasks.filter(
-      (item) => item.status !== "done" && item.workspace === pickWorkspace
+      (item) =>
+        item.status !== "done" && (linkedOnly || item.workspace === pickWorkspace)
     );
+    const limit = linkedOnly ? Infinity : 30;
     if (!query) {
-      return available.slice(0, 30);
+      return available.slice(0, limit);
     }
     return available
       .filter(
@@ -564,8 +611,8 @@ function AddItemModal({
           item.title.toLowerCase().includes(query) ||
           item.taskTitle.toLowerCase().includes(query)
       )
-      .slice(0, 30);
-  }, [pickableSubtasks, search, pickWorkspace]);
+      .slice(0, limit);
+  }, [pickableSubtasks, search, pickWorkspace, linkedOnly]);
 
   function toggleSelected(id: string) {
     setSelectedIds((current) => {
@@ -618,7 +665,7 @@ function AddItemModal({
       title={title}
       description={
         mode === "pick"
-          ? "Selecting a subtask keeps it synced with your main task."
+          ? "Tick one or more subtasks — they stay synced with your main task."
           : "Quick checklist item for this session."
       }
       size="md"
@@ -671,6 +718,7 @@ function AddItemModal({
           </form>
         ) : (
           <div className="space-y-3">
+            {!linkedOnly && (
             <div className="flex gap-2">
               {WORKSPACE_TABS.map(({ id, label, icon: Icon }) => (
                 <button
@@ -689,23 +737,25 @@ function AddItemModal({
                 </button>
               ))}
             </div>
+            )}
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={`Search ${pickWorkspace} subtasks...`}
+              placeholder={linkedOnly ? "Search subtasks..." : `Search ${pickWorkspace} subtasks...`}
               autoFocus
             />
             {filtered.length === 0 ? (
               <p className="text-sm text-muted">No open subtasks found.</p>
             ) : (
-              <ul className="max-h-64 space-y-2 overflow-y-auto">
+              <ul className="max-h-[45vh] space-y-2 overflow-y-auto sm:max-h-64">
                 {filtered.map((subtask) => {
                   const checked = selectedIds.has(subtask.id);
                   return (
                     <li key={subtask.id}>
                       <label
+                        style={linkedOnly ? { marginLeft: `${subtask.depth * 16}px` } : undefined}
                         className={cn(
-                          "flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5",
+                          "flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-3 sm:py-2.5",
                           checked
                             ? "border-primary bg-primary/5"
                             : "border-border/70 bg-background/50"
@@ -720,7 +770,7 @@ function AddItemModal({
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-foreground">{subtask.title}</p>
                           <p className="truncate text-[11px] text-muted">
-                            {subtask.workspace} · {subtask.taskTitle}
+                            {linkedOnly ? subtask.taskTitle : `${subtask.workspace} · ${subtask.taskTitle}`}
                           </p>
                         </div>
                       </label>
